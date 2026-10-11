@@ -23,13 +23,3 @@
 
 include ':libuvccamera'
 include ':usbCameraTest0'
-// not yet ported to the current Gradle/AGP toolchain
-//include ':usbCameraCommon'
-//include ':usbCameraTest'
-//include ':usbCameraTest2'
-//include ':usbCameraTest3'
-//include ':usbCameraTest4'
-//include ':usbCameraTest5'
-//include ':usbCameraTest6'
-//include ':usbCameraTest7'
-//include ':usbCameraTest8'
