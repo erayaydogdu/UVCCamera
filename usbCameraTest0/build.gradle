@@ -40,10 +40,33 @@ android {
 		versionName "3.00"
     }
 
+	// the release key is configured in local.properties:
+	// release.storeFile, release.storePassword, release.keyAlias, release.keyPassword
+	def localProps = new Properties()
+	def localPropsFile = rootProject.file('local.properties')
+	if (localPropsFile.exists()) {
+		localPropsFile.withInputStream { localProps.load(it) }
+	}
+	def hasReleaseKey = localProps.getProperty('release.storeFile') != null
+
+	signingConfigs {
+		if (hasReleaseKey) {
+			release {
+				storeFile file(localProps.getProperty('release.storeFile'))
+				storePassword localProps.getProperty('release.storePassword')
+				keyAlias localProps.getProperty('release.keyAlias')
+				keyPassword localProps.getProperty('release.keyPassword')
+			}
+		}
+	}
+
     buildTypes {
         release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-project.txt'
+			// the native code looks up Java classes, fields and methods by name
+            minifyEnabled false
+			if (hasReleaseKey) {
+				signingConfig signingConfigs.release
+			}
         }
     }
 }

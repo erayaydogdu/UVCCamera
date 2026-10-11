@@ -34,7 +34,6 @@ import android.view.View.OnClickListener;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
-import android.widget.Toast;
 
 import com.serenegiant.common.BaseActivity;
 import com.serenegiant.usb.CameraDialog;
@@ -45,7 +44,7 @@ import com.serenegiant.usb.USBMonitor.UsbControlBlock;
 import com.serenegiant.usb.UVCCamera;
 
 public class MainActivity extends BaseActivity implements CameraDialog.CameraDialogParent {
-	private static final boolean DEBUG = true;	// TODO set false when production
+	private static final boolean DEBUG = false;
 	private static final String TAG = "MainActivity";
 
 	// preview size requested from the capture device
@@ -186,7 +185,6 @@ public class MainActivity extends BaseActivity implements CameraDialog.CameraDia
 		@Override
 		public void onAttach(final UsbDevice device) {
 			if (DEBUG) Log.v(TAG, "onAttach:");
-			Toast.makeText(MainActivity.this, "USB_DEVICE_ATTACHED", Toast.LENGTH_SHORT).show();
 			// start the preview without going through the device selection dialog
 			synchronized (mSync) {
 				if ((mUVCCamera == null) && (mUSBMonitor != null)
@@ -261,7 +259,6 @@ public class MainActivity extends BaseActivity implements CameraDialog.CameraDia
 		@Override
 		public void onDettach(final UsbDevice device) {
 			if (DEBUG) Log.v(TAG, "onDettach:");
-			Toast.makeText(MainActivity.this, "USB_DEVICE_DETACHED", Toast.LENGTH_SHORT).show();
 		}
 
 		@Override

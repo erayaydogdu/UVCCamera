@@ -32,7 +32,7 @@ into a fullscreen viewer for a UVC HDMI capture device, e.g. to use a phone as t
 * Only `libuvccamera` and `usbCameraTest0` are part of the build, the other samples are commented out in `settings.gradle`
   because they have not been ported yet.
 * `usbCameraTest0` shows the device in landscape at 1920x1080 (MJPEG) without title bar, keeps the screen on and
-  opens the device as soon as it is attached.
+  opens the device as soon as it is attached. It can be set as the default app for the device in the USB permission dialog.
 * `targetSdkVersion` has to stay at 27. On Android 10 the USB service reports a missing `CAMERA` permission for video class
   devices to every app targeting API 28 or later, even when the permission is granted, so the device can never be opened.
   Play Protect refuses to install apps with such an old target, install with `adb` after turning off
@@ -41,6 +41,15 @@ into a fullscreen viewer for a UVC HDMI capture device, e.g. to use a phone as t
 ```
 ./gradlew :usbCameraTest0:assembleDebug
 adb install -r usbCameraTest0/build/outputs/apk/debug/usbCameraTest0-debug.apk
+```
+
+For a signed release build add the key to `local.properties` and run `./gradlew :usbCameraTest0:assembleRelease`.
+
+```
+release.storeFile=/path/to/release.jks
+release.storePassword=...
+release.keyAlias=...
+release.keyPassword=...
 ```
 
 How to compile library  
