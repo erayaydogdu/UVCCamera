@@ -1,35 +1,35 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
     repositories {
-//		google()
-		maven { url 'https://maven.google.com' }
-        jcenter()
+		google()
+		mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.4'
+        classpath 'com.android.tools.build:gradle:9.4.1'
     }
 }
 
 allprojects {
     repositories {
-//    	google()
-		maven { url 'https://maven.google.com' }
-		jcenter()
-		maven { url 'http://raw.github.com/saki4510t/libcommon/master/repository/' }
+		google()
+		mavenCentral()
+		maven { url 'https://raw.githubusercontent.com/saki4510t/libcommon/master/repository/' }
     }
 }
 
-task clean(type: Delete) {
-	delete rootProject.buildDir
+tasks.register('clean', Delete) {
+	delete rootProject.layout.buildDirectory
 }
 
 ext {
-	supportLibVersion = '27.1.1'  // variable that can be referenced to keep support libs consistent
+	appcompatVersion = '1.6.1'
 	commonLibVersion= '2.12.4'
-	versionBuildTool = '27.0.3'
-	versionCompiler = 27
+	versionCompiler = 37
+	versionMin = 21
+	// Must stay at 27 for Android 10 devices: there the USB service wrongly reports a missing
+	// CAMERA permission for video class devices to any app targeting API 28+, so the device can never be opened.
 	versionTarget = 27
 	versionNameString = '1.0.0'
-	javaSourceCompatibility = JavaVersion.VERSION_1_8
-	javaTargetCompatibility = JavaVersion.VERSION_1_8
+	javaSourceCompatibility = JavaVersion.VERSION_11
+	javaTargetCompatibility = JavaVersion.VERSION_11
 }

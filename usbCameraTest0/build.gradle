@@ -24,8 +24,8 @@
 apply plugin: 'com.android.application'
 
 android {
-	compileSdkVersion versionCompiler
-	buildToolsVersion versionBuildTool
+	namespace 'com.serenegiant.usbcameratest0'
+	compileSdk versionCompiler
 
 	compileOptions {
 		sourceCompatibility javaSourceCompatibility
@@ -34,8 +34,8 @@ android {
 
     defaultConfig {
         applicationId "com.serenegiant.usbcameratest0"
-        minSdkVersion 14
-		targetSdkVersion versionTarget
+        minSdk versionMin
+		targetSdk versionTarget
 		versionCode 8
 		versionName "3.00"
     }
@@ -43,16 +43,13 @@ android {
     buildTypes {
         release {
             minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-project.txt'
         }
     }
 }
 
 dependencies {
-	api fileTree(dir: 'libs', include: ['*.jar'])
-
-	implementation "com.android.support:support-v4:${supportLibVersion}"
-	implementation "com.android.support:support-annotations:${supportLibVersion}"
+	implementation "androidx.appcompat:appcompat:${appcompatVersion}"
 
 	implementation("com.serenegiant:common:${commonLibVersion}") {
 		exclude module: 'support-v4'

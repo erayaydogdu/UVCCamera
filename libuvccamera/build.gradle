@@ -22,11 +22,9 @@ apply plugin: 'com.android.library'
  *  may have a different license, see the respective files.
  */
 
-import org.apache.tools.ant.taskdefs.condition.Os
-
 android {
-	compileSdkVersion versionCompiler
-	buildToolsVersion versionBuildTool
+	namespace 'com.serenegiant.uvccamera'
+	compileSdk versionCompiler
 
 	compileOptions {
 		sourceCompatibility javaSourceCompatibility
@@ -34,60 +32,27 @@ android {
 	}
 
     defaultConfig {
-        minSdkVersion 14
-		targetSdkVersion versionTarget
+        minSdk versionMin
+		ndk {
+			abiFilters 'armeabi-v7a', 'arm64-v8a'
+		}
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.txt'
         }
     }
-	sourceSets {
-		main {
-			jniLibs.srcDir 'src/main/libs'
-			jni.srcDirs = []
+	externalNativeBuild {
+		ndkBuild {
+			path 'src/main/jni/Android.mk'
 		}
 	}
 }
 
-tasks.withType(JavaCompile) {
-	compileTask -> compileTask.dependsOn ndkBuild
-}
-
-String getNdkBuildPath() {
-	Properties properties = new Properties()
-	properties.load(project.rootProject.file('local.properties').newDataInputStream())
-	def ndkBuildingDir = properties.getProperty("ndk.dir")
-	def ndkBuildPath = ndkBuildingDir
-	if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-		ndkBuildPath = ndkBuildingDir + '/ndk-build.cmd'
-	} else {
-		ndkBuildPath = ndkBuildingDir + '/ndk-build'
-	}
-	return ndkBuildPath
-}
-
-task ndkBuild(type: Exec, description: 'Compile JNI source via NDK') {
-	println('executing ndkBuild')
-	def ndkBuildPath = getNdkBuildPath();
-	commandLine ndkBuildPath, '-j8', '-C', file('src/main').absolutePath
-}
-
-task ndkClean(type: Exec, description: 'clean JNI libraries') {
-	println('executing ndkBuild clean')
-	def ndkBuildPath = getNdkBuildPath();
-	commandLine ndkBuildPath, 'clean', '-C', file('src/main').absolutePath
-}
-
-clean.dependsOn 'ndkClean'
-
 dependencies {
-    implementation fileTree(dir: new File(buildDir, 'libs'), include: '*.jar')
-
-	implementation "com.android.support:support-v4:${supportLibVersion}"
-	implementation "com.android.support:support-annotations:${supportLibVersion}"
+	implementation "androidx.appcompat:appcompat:${appcompatVersion}"
 
 	implementation("com.serenegiant:common:${commonLibVersion}") {
 		exclude module: 'support-v4'

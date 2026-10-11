@@ -43,6 +43,7 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
+import android.os.Build;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
@@ -167,11 +168,19 @@ public final class USBMonitor {
 			if (DEBUG) Log.i(TAG, "register:");
 			final Context context = mWeakContext.get();
 			if (context != null) {
-				mPermissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(ACTION_USB_PERMISSION), 0);
+				// UsbManager fills in the device and the result, so the PendingIntent has to be mutable
+				// and a mutable PendingIntent needs an explicit target on Android 14+
+				final Intent intent = new Intent(ACTION_USB_PERMISSION).setPackage(context.getPackageName());
+				mPermissionIntent = PendingIntent.getBroadcast(context, 0, intent,
+					Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_MUTABLE : 0);
 				final IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
 				// ACTION_USB_DEVICE_ATTACHED never comes on some devices so it should not be added here
 				filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-				context.registerReceiver(mUsbReceiver, filter);
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+					context.registerReceiver(mUsbReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+				} else {
+					context.registerReceiver(mUsbReceiver, filter);
+				}
 			}
 			// start connection check
 			mDeviceCounts = 0;
@@ -659,7 +668,9 @@ public final class USBMonitor {
 		}
 		if (useNewAPI && BuildCheck.isAndroid5()) {
 			sb.append("#");
-			if (TextUtils.isEmpty(serial)) {
+			// Android 10+ throws SecurityException from getSerialNumber until the user grants permission,
+			// leave it out there so that the key is the same before and after the permission is granted
+			if (TextUtils.isEmpty(serial) && (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q)) {
 				sb.append(device.getSerialNumber());	sb.append("#");	// API >= 21
 			}
 			sb.append(device.getManufacturerName());	sb.append("#");	// API >= 21
@@ -890,7 +901,12 @@ public final class USBMonitor {
 			if (BuildCheck.isLollipop()) {
 				info.manufacturer = device.getManufacturerName();
 				info.product = device.getProductName();
-				info.serial = device.getSerialNumber();
+				try {
+					info.serial = device.getSerialNumber();
+				} catch (final SecurityException e) {
+					// Android 10+: no permission for this device yet
+					info.serial = null;
+				}
 			}
 			if (BuildCheck.isMarshmallow()) {
 				info.usb_version = device.getVersion();
