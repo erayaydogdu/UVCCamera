@@ -529,6 +529,18 @@ void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 			for ( ; LIKELY(isRunning()) ; ) {
 				frame_mjpeg = waitPreviewFrame();
 				if (LIKELY(frame_mjpeg)) {
+					if (!mFrameCallbackObj && !mCaptureWindow) {
+						// nobody needs the yuyv frame, decode straight to RGBX
+						// instead of MJPEG => yuyv => RGBX to save one pass over the whole frame
+						frame = get_frame(frame_mjpeg->width * frame_mjpeg->height * 4);
+						result = uvc_mjpeg2rgbx(frame_mjpeg, frame);   // MJPEG => RGBX
+						recycle_frame(frame_mjpeg);
+						if (LIKELY(!result)) {
+							draw_preview_one(frame, &mPreviewWindow, NULL, 4);
+						}
+						recycle_frame(frame);
+						continue;
+					}
 					frame = get_frame(frame_mjpeg->width * frame_mjpeg->height * 2);
 					result = uvc_mjpeg2yuyv(frame_mjpeg, frame);   // MJPEG => yuyv
 					recycle_frame(frame_mjpeg);

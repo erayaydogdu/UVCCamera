@@ -389,9 +389,8 @@ uvc_error_t uvc_mjpeg2rgbx(uvc_frame_t *in, uvc_frame_t *out) {
 	struct jpeg_decompress_struct dinfo;
 	struct error_mgr jerr;
 	size_t lines_read;
-	// local copy
-	uint8_t *data = out->data;
-	const int out_step = out->step;
+	uint8_t *data;
+	int out_step;
 
 	int num_scanlines, i;
 	lines_read = 0;
@@ -411,6 +410,9 @@ uvc_error_t uvc_mjpeg2rgbx(uvc_frame_t *in, uvc_frame_t *out) {
 	out->sequence = in->sequence;
 	out->capture_time = in->capture_time;
 	out->source = in->source;
+	// local copy, has to be taken after the frame was resized
+	data = out->data;
+	out_step = out->step;
 
 	dinfo.err = jpeg_std_error(&jerr.super);
 	jerr.super.error_exit = _error_exit;
