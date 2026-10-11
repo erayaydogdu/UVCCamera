@@ -21,6 +21,28 @@ All files in the folder are under this Apache License, Version 2.0.
 Files in the jni/libjpeg, jni/libusb and jin/libuvc folders may have a different license,
 see the respective files.
 
+About this fork
+=========
+This fork makes the library and the `usbCameraTest0` sample build with a current toolchain and turns the sample
+into a fullscreen viewer for a UVC HDMI capture device, e.g. to use a phone as the display of a Raspberry Pi.
+
+* Builds with Gradle 9.8 / Android Gradle Plugin 9.4 / NDK 28 and a JDK 17 or newer (the JDK bundled with Android Studio works),
+  for `armeabi-v7a` and `arm64-v8a`. The NDK is downloaded by the Android Gradle Plugin, `ndk.dir` is not needed anymore.
+  The sections below describe the original build and are out of date.
+* Only `libuvccamera` and `usbCameraTest0` are part of the build, the other samples are commented out in `settings.gradle`
+  because they have not been ported yet.
+* `usbCameraTest0` shows the device in landscape at 1920x1080 (MJPEG) without title bar, keeps the screen on and
+  opens the device as soon as it is attached.
+* `targetSdkVersion` has to stay at 27. On Android 10 the USB service reports a missing `CAMERA` permission for video class
+  devices to every app targeting API 28 or later, even when the permission is granted, so the device can never be opened.
+  Play Protect refuses to install apps with such an old target, install with `adb` after turning off
+  `Verify apps over USB` in the developer options.
+
+```
+./gradlew :usbCameraTest0:assembleDebug
+adb install -r usbCameraTest0/build/outputs/apk/debug/usbCameraTest0-debug.apk
+```
+
 How to compile library  
 =========
 The Gradle build system will build the entire project, including the NDK parts. If you want to build with Gradle build system,
