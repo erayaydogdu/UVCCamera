@@ -509,11 +509,38 @@ int UVCPreview::prepare_preview(uvc_stream_ctrl_t *ctrl) {
 	RETURN(result, int);
 }
 
+// destination of uvc_mjpeg2rgbx_direct
+struct direct_window_t {
+	ANativeWindow *window;
+	bool unusable;	// the buffers of the window can not take a frame as it is
+};
+
+static uint8_t *lock_window_cb(void *user_ptr, int width, int height, int *step) {
+	direct_window_t *dest = reinterpret_cast<direct_window_t *>(user_ptr);
+	ANativeWindow_Buffer buffer;
+	if (UNLIKELY(ANativeWindow_lock(dest->window, &buffer, NULL) != 0))
+		return NULL;
+	if (UNLIKELY((buffer.width < width) || (buffer.height < height)
+		|| ((buffer.format != WINDOW_FORMAT_RGBA_8888) && (buffer.format != WINDOW_FORMAT_RGBX_8888)))) {
+		dest->unusable = true;
+		ANativeWindow_unlockAndPost(dest->window);
+		return NULL;
+	}
+	*step = buffer.stride * PREVIEW_PIXEL_BYTES;
+	return (uint8_t *)buffer.bits;
+}
+
+static void unlock_window_cb(void *user_ptr) {
+	direct_window_t *dest = reinterpret_cast<direct_window_t *>(user_ptr);
+	ANativeWindow_unlockAndPost(dest->window);
+}
+
 void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 	ENTER();
 
 	uvc_frame_t *frame = NULL;
 	uvc_frame_t *frame_mjpeg = NULL;
+	bool direct_draw = true;
 	uvc_error_t result = uvc_start_streaming_bandwidth(
 		mDeviceHandle, ctrl, uvc_preview_frame_callback, (void *)this, requestBandwidth, 0);
 
@@ -530,6 +557,34 @@ void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 				frame_mjpeg = waitPreviewFrame();
 				if (LIKELY(frame_mjpeg)) {
 					if (!mFrameCallbackObj && !mCaptureWindow) {
+						// only the newest frame is worth decoding, frames that queued up while the previous one
+						// was decoded would only add latency
+						pthread_mutex_lock(&preview_mutex);
+						{
+							while (previewFrames.size() > 0) {
+								recycle_frame(frame_mjpeg);
+								frame_mjpeg = previewFrames.remove(0);
+							}
+						}
+						pthread_mutex_unlock(&preview_mutex);
+						if (direct_draw) {
+							// decode into the buffer of the Surface, this saves copying the whole frame.
+							// keep a reference instead of the lock, decoding takes too long to block setPreviewDisplay
+							direct_window_t dest = { NULL, false };
+							pthread_mutex_lock(&preview_mutex);
+							{
+								dest.window = mPreviewWindow;
+								if (dest.window) ANativeWindow_acquire(dest.window);
+							}
+							pthread_mutex_unlock(&preview_mutex);
+							if (LIKELY(dest.window)) {
+								uvc_mjpeg2rgbx_direct(frame_mjpeg, lock_window_cb, unlock_window_cb, &dest);
+								ANativeWindow_release(dest.window);
+								if (UNLIKELY(dest.unusable)) direct_draw = false;
+							}
+							recycle_frame(frame_mjpeg);
+							continue;
+						}
 						// nobody needs the yuyv frame, decode straight to RGBX
 						// instead of MJPEG => yuyv => RGBX to save one pass over the whole frame
 						frame = get_frame(frame_mjpeg->width * frame_mjpeg->height * 4);

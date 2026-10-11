@@ -454,6 +454,80 @@ fail:
 	return UVC_ERROR_OTHER+1;
 }
 
+/** @brief Convert an MJPEG frame to RGBX directly into a buffer of the caller
+ * @ingroup frame
+ *
+ * The buffer is requested with lock_cb only after the header of the frame was parsed successfully,
+ * unlock_cb is called exactly once for every buffer returned by lock_cb.
+ *
+ * @param in MJPEG frame
+ * @param lock_cb returns the destination buffer
+ * @param unlock_cb releases the destination buffer
+ * @param user_ptr passed to the callbacks
+ */
+uvc_error_t uvc_mjpeg2rgbx_direct(uvc_frame_t *in,
+	uvc_rgbx_lock_cb_t lock_cb, uvc_rgbx_unlock_cb_t unlock_cb, void *user_ptr) {
+
+	struct jpeg_decompress_struct dinfo;
+	struct error_mgr jerr;
+	volatile int locked = 0;
+	uint8_t *data;
+	int step = 0;
+	size_t lines_read = 0;
+	int num_scanlines, i;
+	unsigned char *buffer[MAX_READLINE];
+
+	if (UNLIKELY(in->frame_format != UVC_FRAME_FORMAT_MJPEG))
+		return UVC_ERROR_INVALID_PARAM;
+
+	dinfo.err = jpeg_std_error(&jerr.super);
+	jerr.super.error_exit = _error_exit;
+
+	if (setjmp(jerr.jmp)) {
+		goto fail;
+	}
+
+	jpeg_create_decompress(&dinfo);
+	jpeg_mem_src(&dinfo, in->data, in->actual_bytes);
+	jpeg_read_header(&dinfo, TRUE);
+
+	if (dinfo.dc_huff_tbl_ptrs[0] == NULL) {
+		/* This frame is missing the Huffman tables: fill in the standard ones */
+		insert_huff_tables(&dinfo);
+	}
+
+	dinfo.out_color_space = JCS_EXT_RGBA;
+	dinfo.dct_method = JDCT_IFAST;
+
+	jpeg_start_decompress(&dinfo);
+
+	if (UNLIKELY((dinfo.output_width != in->width) || (dinfo.output_height != in->height)))
+		goto fail;
+
+	data = lock_cb(user_ptr, dinfo.output_width, dinfo.output_height, &step);
+	if (UNLIKELY(!data))
+		goto fail;
+	locked = 1;
+
+	for (; dinfo.output_scanline < dinfo.output_height ;) {
+		buffer[0] = data + lines_read * step;
+		for (i = 1; i < MAX_READLINE; i++)
+			buffer[i] = buffer[i-1] + step;
+		num_scanlines = jpeg_read_scanlines(&dinfo, buffer, MAX_READLINE);
+		lines_read += num_scanlines;
+	}
+	jpeg_finish_decompress(&dinfo);
+	jpeg_destroy_decompress(&dinfo);
+	unlock_cb(user_ptr);
+	return UVC_SUCCESS;
+
+fail:
+	jpeg_destroy_decompress(&dinfo);
+	if (locked)
+		unlock_cb(user_ptr);
+	return UVC_ERROR_OTHER;
+}
+
 static inline unsigned char sat(int i) {
 	return (unsigned char) (i >= 255 ? 255 : (i < 0 ? 0 : i));
 }

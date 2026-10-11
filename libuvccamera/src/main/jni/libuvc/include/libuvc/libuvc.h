@@ -800,6 +800,12 @@ uvc_error_t uvc_mjpeg2rgb(uvc_frame_t *in, uvc_frame_t *out);
 uvc_error_t uvc_mjpeg2bgr(uvc_frame_t *in, uvc_frame_t *out);		// XXX
 uvc_error_t uvc_mjpeg2rgb565(uvc_frame_t *in, uvc_frame_t *out);	// XXX
 uvc_error_t uvc_mjpeg2rgbx(uvc_frame_t *in, uvc_frame_t *out);		// XXX
+/** returns the buffer to decode a frame of width x height RGBX pixels into, or NULL. step receives the bytes per row */
+typedef uint8_t *(*uvc_rgbx_lock_cb_t)(void *user_ptr, int width, int height, int *step);
+/** called when the buffer returned by the lock callback is not written anymore */
+typedef void (*uvc_rgbx_unlock_cb_t)(void *user_ptr);
+uvc_error_t uvc_mjpeg2rgbx_direct(uvc_frame_t *in,
+	uvc_rgbx_lock_cb_t lock_cb, uvc_rgbx_unlock_cb_t unlock_cb, void *user_ptr);
 uvc_error_t uvc_mjpeg2yuyv(uvc_frame_t *in, uvc_frame_t *out);		// XXX
 #endif
 
