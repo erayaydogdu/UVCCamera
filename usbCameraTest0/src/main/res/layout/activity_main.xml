@@ -26,18 +26,22 @@
     android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@android:color/black"
     tools:context="com.serenegiant.usbcameratest0.MainActivity"
     tools:ignore="MergeRootFrame" >
 
     <SurfaceView
         android:id="@+id/camera_surface_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:layout_gravity="center" />
 
     <ImageButton
         android:id="@+id/camera_button"
         android:layout_width="@dimen/button_size"
         android:layout_height="@dimen/button_size"
+        android:layout_gravity="start|center_vertical"
+        android:alpha="0.5"
         android:contentDescription="@string/camera"
         android:scaleType="centerCrop"
         android:src="@android:drawable/ic_menu_camera" />
